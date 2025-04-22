@@ -1,0 +1,228 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Shopreviews\Connect\Block\Widget\Review\Textual;
+use Hyva\Theme\ViewModel\HeroiconsSolid;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
+use Hyva\Theme\Model\ViewModelRegistry;
+use Magento\Framework\Escaper;
+
+/** @var Textual $block */
+/** @var ViewModelRegistry $viewModels */
+/** @var Escaper $escaper */
+/** @var HeroiconsSolid $heroicons */
+/** @var HeroiconsOutline $heroiconsOutline */
+
+$heroicons = $viewModels->require(HeroiconsSolid::class);
+$heroiconsOutline = $viewModels->require(HeroiconsOutline::class);
+
+$uniqId = $block->getUniqueId();
+$website = $block->getWebsite();
+$fm = $block->formatter();
+
+$isItPaid = false; // TODO: add logic for paid plan
+$shopreviewsLogo = $block->getViewFileUrl('Shopreviews_Connect::images/shopreviews-logo.png');
+
+if(!$website) { return; }
+
+$reviewCount = $website->getReviewCount();
+$reviewLabel = $reviewCount > 1 ? __('reviews') : __('review');
+$sourcesCount = $website->getSourceCount();
+?>
+
+<script>
+    'use strict';
+
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('shopreviews_<?= $uniqId ?>', {
+            modalType: "<?= /* @noEscape */ $block->getModalType(); ?>",
+            showModal: false,
+            activePlatform: 'all',
+            loaded: false,
+            init() {
+                this.loaded = true;
+            },
+            setPlatform(platform) {
+                this.activePlatform = platform === this.activePlatform ? 'all' : platform;
+            }
+        });
+    });
+</script>
+
+<section x-data="{ store: Alpine.store('shopreviews_<?= $uniqId ?>') }"
+         class="inline-flex items-center flex-wrap gap-3 py-2.5 px-4 bg-white border border-[#e5e7eb] rounded-xl shadow text-sm">
+    <?php if ($block->showStars()): ?>
+        <b>
+            <?= $block->escapeHtml($website->getAvgRating() . ' / ' . $block->getMaxRating()); ?>
+        </b>
+        <?= $block->getLayout()
+            ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+            ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+            ->setData('svgSize', '20')
+            ->setData('percent', $website->getAvgRating() / $block->getMaxRating() * 100)
+            ->toHtml();
+        ?>
+    <?php endif; ?>
+
+    <div>
+        <?php if ($sourcesCount): ?>
+            <?= $escaper->escapeHtml(__(
+                '<b>%1 %2</b> from <b>%3 sources</b>', $reviewCount, $reviewLabel, $sourcesCount
+            ), ['b']); ?>
+        <?php else: ?>
+            <?= $escaper->escapeHtml(__(
+                '<b>%1 %2</b>', $reviewCount, $reviewLabel
+            ), ['b']); ?>
+        <?php endif; ?>
+
+        <?php if ($block->enableModalLink()): ?>
+            <span class="relative inline-block w-5 h-3.5 ml-2.5 text-[#3b82f6] transition-colors duration-300 hover:text-[#0d5cdc] cursor-pointer"
+                  x-on:click="store.showModal = true">
+                <?= $heroiconsOutline->externalLinkHtml('absolute -top', 18, 18, ["style" => "stroke-width: 1.5"]); ?>
+            </span>
+        <?php endif; ?>
+    </div>
+</section>
+
+<?php if ($block->enableModalLink()): ?>
+    <div x-data="{ store: Alpine.store('shopreviews_<?= $uniqId ?>') }"
+        class="fixed z-50 w-[90%]"
+        style="display: none;"
+        :class="{
+            '!block': store.loaded,
+            'top-1/2 left-1/2 max-w-2xl max-h-[90vh] opacity-0 invisible transition-opacity duration-300': store.modalType === 'popup',
+            'top-0 right-0 max-w-lg h-screen transition-transform duration-500': store.modalType === 'slideout',
+            '!visible !opacity-100': store.modalType === 'popup' && store.showModal,
+            '!translate-x-0': store.modalType === 'slideout' && store.showModal
+        }"
+        :style="store.modalType === 'popup' ? 'transform: translate(-50%, -50%);' : 
+                store.modalType === 'slideout' ? 'transform: translateX(105%)' : ''"
+    >
+        
+        <div class="flex flex-col bg-white border border-[#e5e7eb]"
+            :class="{
+                'max-h-[90vh] rounded-xl': store.modalType === 'popup',
+                'max-h-screen h-full': store.modalType === 'slideout'
+            }"
+        >
+            <div class="relative text-center py-8 px-5 border-b border-[#e5e7eb]">
+                <?php if(!$isItPaid): ?>
+                    <div data-element="shopreviews-logo" class="mb-6">
+                        <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="absolute top-3 left-4" alt="Shopreview logo" width="158" height="29"/>
+                    </div>
+                <?php endif; ?>
+
+                <h2 class="text-3xl font-semibold mb-2 [&_span]:text-xl [&_span]:font-light">
+                    <?= $escaper->escapeHtml(__(
+                        '%1 <span>/ %2</span>', $website->getAvgRating(), $block->getMaxRating()
+                    ), ['span']); ?>
+                </h2>
+                
+                <?= $block->getLayout()
+                    ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+                    ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+                    ->setData('svgSize', '40')
+                    ->setData('percent', $website->getAvgRating() / $block->getMaxRating() * 100)
+                    ->toHtml();
+                ?>
+
+                <div class="text-[15px] tracking-wider mt-3">
+                    <?php if ($sourcesCount): ?>
+                        <?= $escaper->escapeHtml(__(
+                            'Based on <b>%1 %2</b> from <b>%3 sources</b>', $reviewCount, $reviewLabel, $sourcesCount
+                        ), ['b']); ?>
+                    <?php else: ?>
+                        <?= $escaper->escapeHtml(__(
+                            'Based on <b>%1 %2</b>', $reviewCount, $reviewLabel,
+                        ), ['b']); ?>
+                    <?php endif; ?>
+                </div>
+
+                <span class="absolute top-4 right-4 flex items-center justify-center w-8 h-8 opacity-50 rounded-full 
+                           bg-[#d4cacc] text-white transition-all duration-300 hover:opacity-90 cursor-pointer"
+                        x-on:click="store.showModal = false">
+                    <?= $heroicons->xHtml('', 24, 24); ?>
+                </span>
+            </div>
+
+            <?php if ($website->getSourceCount() > 1): ?>
+                <div class="hidden sm:grid border-b border-[#e5e7eb] grid-cols-3">
+                    <?php /** @var \Shopreviews\Connect\Api\Source\DataInterface $source */ ?>
+                    <?php $index = 1; ?>
+                    <?php foreach ($block->getSources() as $source): ?>
+                        <div class="h-24 p-7 border-r border-[#e5e7eb] transition-colors duration-300 cursor-pointer
+                                    hover:bg-[#f9f9f9]"
+                             :class="{ 'bg-[#f9f9f9]': store.activePlatform === '<?= $escaper->escapeHtml($source->getPlatformName()); ?>' }"
+                             x-on:click="store.setPlatform('<?= $escaper->escapeHtml($source->getPlatformName()); ?>')" 
+                             style="<?= $index % 3 === 0 ? 'border-right: none;' : '' ?>">
+                            <img src="<?= $escaper->escapeUrl($block->getMediaImageUrl($source->getPlatformLogo())) ?>"
+                                 alt="<?= $escaper->escapeHtml($source->getPlatformName()); ?>"
+                                 class="w-full h-full object-contain" />
+                        </div>
+                        <?php $index +=1 ; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="h-full overflow-auto" style="max-height: calc(100% - 10px);">
+                <?php /** @var \Shopreviews\Connect\Api\Review\DataInterface $review */ ?>
+                <?php foreach ($block->getReviews() as $review): ?>
+                    <div class="px-5 py-7 border-b border-[#e5e7eb] last:border-b-0"
+                         :class="{ 
+                            'block': store.activePlatform === 'all' || store.activePlatform === '<?= $escaper->escapeHtml($review->getPlatformName()); ?>',
+                            'hidden': store.activePlatform !== 'all' && store.activePlatform !== '<?= $escaper->escapeHtml($review->getPlatformName()); ?>',
+                        }">
+                        
+                        <div class="flex items-center justify-between flex-wrap gap-5 mb-5 [&_[data-element=box-stars]]:-ml-1">
+                            <?= $block->getLayout()
+                                ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+                                ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+                                ->setData('svgSize', '24')
+                                ->setData('percent', $review->getRating() / $block->getMaxRating() * 100)
+                                ->toHtml();
+                            ?>
+                            <span class="flex items-center gap-2.5 opacity-50">
+                                <?= $heroicons->userHtml('relative -top-0.5', 18, 18); ?>
+                                <span>
+                                    <?= $escaper->escapeHtml($review->getName()) ?>
+                                </span>
+                            </span>
+                        </div>
+
+                        <div class="mb-7 text-[15px] leading-7">
+                            <?= $escaper->escapeHtml($review->getDescription()) ?>
+                        </div>
+
+                        <div class="flex items-center justify-between flex-wrap gap-5 text-sm">
+                            <span class="flex items-center gap-1.5 [&_i]:font-normal [&_i]: opacity-70">
+                                <span class="inline-flex items-center justify-center w-8 h-8 mr-1.5 p-2
+                                            rounded-full border border-[#e5e7eb] shadow box-border">
+                                    <?php $icon = $block->getMediaImageUrl($review->getPlatformIcon()); ?>
+                                    <img src="<?= $escaper->escapeUrl($icon); ?>"
+                                        alt="<?= $escaper->escapeHtml($review->getPlatformName()); ?>"
+                                        width="20" height="20"
+                                        class="w-full h-full object-contain" />
+                                </span>
+                                <?= $escaper->escapeHtml(__(
+                                    '<b>From:</b> <i>%1</i>',
+                                    $review->getPlatformName()
+                                ), ['b', 'i']); ?>
+                            </span>
+                            <span class="opacity-70">
+                                <?= $escaper->escapeHtml($fm->date($review->getReviewDate())); ?>
+                            </span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <span   x-data="{ store: Alpine.store('shopreviews_<?= $uniqId ?>') }"
+            class="fixed inset-0 z-40 opacity-0 invisible bg-black/40 transition-opacity duration-300"
+            :class="{ '!visible !opacity-100': store.showModal }"
+            x-on:click="store.showModal = false"></span>
+<?php endif; ?>

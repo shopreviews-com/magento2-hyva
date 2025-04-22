@@ -1,0 +1,23 @@
+{
+    "name": "shopreviews-com/magento2-hyva",
+    "description": "Hyvä Themes Compatibility module for Shopreviews.com extension",
+    "type": "magento2-module",
+    "version": "1.1.0",
+    "license": [
+      "OSL-3.0",
+      "AFL-3.0"
+    ],
+    "require": {
+      "magento/framework": "*",
+      "hyva-themes/magento2-compat-module-fallback": "*",
+      "shopreviews-com/magento2": "*"
+    },
+    "autoload": {
+      "files": [
+        "src/registration.php"
+      ],
+      "psr-4": {
+        "Shopreviews\\HyvaConnect\\": "src/"
+      }
+    }
+  }

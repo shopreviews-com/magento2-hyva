@@ -1,0 +1,339 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Shopreviews\Connect\Block\Widget\Review\Carousel;
+use Hyva\Theme\ViewModel\HeroiconsSolid;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
+use Hyva\Theme\Model\ViewModelRegistry;
+use Magento\Framework\Escaper;
+
+/** @var Textual $block */
+/** @var ViewModelRegistry $viewModels */
+/** @var Escaper $escaper */
+/** @var HeroiconsSolid $heroicons */
+/** @var HeroiconsOutline $heroiconsOutline */
+
+$heroicons = $viewModels->require(HeroiconsSolid::class);
+$heroiconsOutline = $viewModels->require(HeroiconsOutline::class);
+
+$uniqId = $block->getUniqueId();
+$website = $block->getWebsite();
+$fm = $block->formatter();
+
+$isItPaid = false; // TODO: add logic for paid plan
+$shopreviewsLogo = $block->getViewFileUrl('Shopreviews_Connect::images/shopreviews-logo.png');
+
+if(!$website) { return; }
+
+$reviewCount = $website->getReviewCount();
+$reviewLabel = $reviewCount > 1 ? __('reviews') : __('review');
+$sourcesCount = $website->getSourceCount();
+$textLength = $block->getTextLength();
+?>
+
+<section x-data="shopreviews_<?= $uniqId ?>"
+         class="flex flex-col items-center gap-10 md:grid md:grid-cols-[320px_1fr]"
+         :class="{ 
+            'relative left-1/2 px-6 overflow-hidden': additionalClass.includes('full-width'),
+            'md:!flex md:!flex-col md:!items-center': additionalClass.includes('no-summary')
+         }"
+         :style="additionalClass.includes('full-width') ? 'width: calc(100vw - 48px); max-width: calc(100vw - 65px); transform: translateX(-50%);' : ''">
+
+    <?php if ($block->showReviewSummary()): ?>
+        <div class="text-center [&_[data-element=box-stars]]:mb-3.5">
+            <div class="mb-1 text-3xl font-semibold text-[#1e204f] 
+                        [&_span]:opacity-50 [&_span]:text-xl [&_span]:font-light">
+                <?= $escaper->escapeHtml(__(
+                    '%1 <span>/ 5</span>', $website->getAvgRating(),
+                ), ['span']); ?>
+            </div>
+
+            <?= $block->getLayout()
+                ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+                ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+                ->setData('svgSize', '40')
+                ->setData('percent', $website->getAvgRating() * 20)
+                ->toHtml();
+            ?>
+
+            <div class="opacity-80">
+                <?php if ($sourcesCount): ?>
+                    <?= $escaper->escapeHtml(__(
+                        'Based on <b>%1 %2</b> from <b>%3 sources</b>', $reviewCount, $reviewLabel, $sourcesCount
+                    ), ['b']); ?>
+                <?php else: ?>
+                    <?= $escaper->escapeHtml(__(
+                        'Based on <b>%1 %2</b>', $reviewCount, $reviewLabel
+                    ), ['b']); ?>
+                <?php endif; ?>
+            </div>
+
+            <?php if(!$isItPaid): ?>
+                <div data-element="shopreviews-logo" class="mt-2.5">
+                    <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="mx-auto" alt="Shopreview logo" width="158" height="29"/>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="relative grid"
+         :class="{ 'px-10': options.arrows }"
+         :resize.window="resizeSlider"
+         @resize.window="resizeSlider"
+         @mouseover="options.autoplay ? clearInterval(interval) : null"
+         @mouseout="options.autoplay ? interval = setInterval(() => { arrowNext() }, options.autoplaySpeed) : null"
+         @touchstart="options.autoplay ? clearInterval(interval) : null"
+         @touchend="options.autoplay ? interval = setInterval(() => { arrowNext() }, options.autoplaySpeed) : null">
+        
+        <div class="overflow-hidden select-none"
+             @mouseup="mouseEvent($event)"
+             @mousedown="mouseEvent($event)"
+             @touchend="mouseEvent($event)"
+             @touchstart="mouseEvent($event)">
+
+            <div class="flex transition-transform"
+                :style="`transform: translateX(${currentTransform}); transition-duration: ${transformDuration};`"
+                :resize.window="setSLideStep($el)"
+                @resize.window="setSLideStep($el)">
+
+                <?php /** @var Shopreviews\Connect\Api\Review\DataInterface $review */ ?>
+                <?php foreach ($block->getReviews() as $review): ?>
+                    <div class="px-3" :style="{ 'min-width': slideWidth }">
+                        <div class="flex flex-col p-4 h-full rounded-xl border border-[#e5e7eb] shadow bg-white">
+                            <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
+                                <?= $block->getLayout()
+                                    ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+                                    ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+                                    ->setData('svgSize', '18')
+                                    ->setData('percent', $review->getRating() * 20)
+                                    ->toHtml();
+                                ?>
+                                <span class="opacity-50 leading-6 text-[13px]">
+                                    <?= $escaper->escapeHtml($review->getName()) ?>
+                                </span>
+                            </div>
+
+                            <div class="opacity-50 leading-6 text-[13px] overflow-hidden mb-6"
+                                style="display: -webkit-box; -webkit-box-orient: vertical; 
+                                        <?= $textLength === 'small' ? '-webkit-line-clamp: 2;' : ''; ?>
+                                        <?= $textLength === 'medium' ? '-webkit-line-clamp: 3;' : ''; ?>
+                                        <?= $textLength === 'large' ? '-webkit-line-clamp: 5;' : ''; ?>">
+                                <?= $escaper->escapeHtml($review->getDescription()) ?>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-4 mt-auto">
+                                <span class="inline-flex justify-center items-center w-5">
+                                    <?php $icon = $block->getMediaImageUrl($review->getPlatformIcon()); ?>
+                                    <img src="<?= $escaper->escapeUrl($icon); ?>"
+                                        alt="<?= $escaper->escapeHtml($review->getPlatformName()); ?>"
+                                        width="20" height="20"
+                                        class="w-full h-full object-contain"/>
+                                </span>
+                                <span class="opacity-50 leading-6 text-[13px]">
+                                    <?= $escaper->escapeHtml($fm->date($review->getReviewDate())); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <template x-if="options.arrows">
+            <div class="slider-arrow">
+                <span class="absolute left-0 bottom-1/2 translate-y-3 p-2 hover:border-gray-300
+                             cursor-pointer transition-colors duration-300 bg-white
+                             border border-gray-200 rounded-full text-gray-400"
+                    @click="arrowPrev">
+                    <?= $heroiconsOutline->chevronLeftHtml('', 20, 20, ["style" => "stroke-width: 1.5"]); ?>
+                </span>
+
+                <span class="arrow-right absolute right-0 bottom-1/2 translate-y-3 p-2 hover:border-gray-300
+                             cursor-pointer transition-colors duration-300 bg-white
+                             border border-gray-200 rounded-full text-gray-400"
+                    @click="arrowNext">
+                    <?= $heroiconsOutline->chevronRightHtml('', 20, 20, ["style" => "stroke-width: 1.5"]); ?>
+                </span>
+            </div>
+        </template>
+
+        <template x-if="options.dots">
+            <div class="mt-4 flex gap-1.5 justify-center flex-wrap">
+                <template x-for="index in slideOnPage">
+                    <span class="w-6 h-6 border rounded-full transition-colors duration-300
+                                flex items-center justify-center cursor-pointer border-transparent" 
+                          :class="{ 'pointer-events-none !border-gray-300' : activeSlidePage === index }"
+                          @click="setSlidePage(index)"
+                    >
+                        <span class="bg-transparent w-4 h-4 rounded-full inline-block
+                                    transition-colors duration-300 border border-gray-300"
+                              :class="{ '!bg-[#ffad0f] border-transparent': activeSlidePage === index }"
+                        ></span>
+                    </span>
+                </template>
+            </div>
+        </template>
+    </div>
+</section>
+
+<script>
+    'use strict';
+
+    function shopreviews_<?= $uniqId ?>() {
+        return {
+            additionalClass: "<?= /* @noEscape */ $block->getSectionClass(); ?>",
+            loaded: false,
+
+            slideWidth: '100%',
+            slideCount: <?= count($block->getReviews()); ?>,
+            slideOnPage: 1,
+            activeSlidePage: 1,
+
+            wrapperWidth: 0,
+            stepWidth: 0,
+            currentTransform: '0',
+            transformDuration: '1.5s',
+
+            interval: null,
+            axisShiftX: 0, 
+
+            init() {
+                this.loaded = true;
+                this.setSliderOptions();
+            },
+
+            setSliderOptions() {
+                const sliderSettings = JSON.parse(<?= /* @noEscape */ json_encode($block->getSlickConfig(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>);
+
+                this.options = {
+                    arrows: sliderSettings.arrows,
+                    autoplay: sliderSettings.autoplay,
+                    dots: sliderSettings.dots,
+                    autoplaySpeed: 3000,
+                    breakpoints: {},
+                };
+
+                if (this.additionalClass === '') {
+                    this.options.slidesToShow = 3;
+                    this.options.breakpoints = {
+                        '1023': 1,
+                        '1279': 2,
+                        '2500': 3,
+                    };
+                }
+
+                if (this.additionalClass.includes('no-summary') && 
+                    !this.additionalClass.includes('full-width')) {
+                    this.options.slidesToShow = 4;
+                    this.options.breakpoints = {
+                        '639': 1,
+                        '1023': 2,
+                        '1279': 3,
+                        '2500': 4,
+                    };
+                }
+
+                if (!this.additionalClass.includes('no-summary') && 
+                    this.additionalClass.includes('full-width')) {
+                    this.options.slidesToShow = 4;
+                    this.options.breakpoints = {
+                        '1023': 1,
+                        '1279': 2,
+                        '1599': 3,
+                        '2100': 4,
+                        '2500': 5,
+                    };
+                }
+
+                if (this.additionalClass.includes('no-summary') && 
+                    this.additionalClass.includes('full-width')) {
+                    this.options.slidesToShow = 5;
+                    this.options.breakpoints = {
+                        '639': 1,
+                        '1023': 2,
+                        '1279': 3,
+                        '1599': 4,
+                        '2500': 5
+                    };
+                }
+
+                if (this.options.autoplay) {
+                    this.interval = setInterval(() => { this.arrowNext() }, this.options.autoplaySpeed);
+                }
+            },
+
+            setSlidePage(num) {
+                this.activeSlidePage = num;
+
+                if (!num) this.currentTransform = '0';
+
+                if ((this.wrapperWidth - this.stepWidth) >= this.stepWidth * (num - 1) && num) {
+                    this.currentTransform = `-${this.stepWidth * (num - 1)}px`;
+                } else {
+                    this.currentTransform = `-${this.wrapperWidth - this.stepWidth}px`;
+                }
+
+                setTimeout(() => { this.transformDuration = '1.5s' }, 50);
+            },
+
+            resizeSlider() {
+                // default state
+                this.slideWidth = `${100 / this.options.slidesToShow}%`;
+                this.slideOnPage = this.slideCount - this.options.slidesToShow;
+
+                const pObj = this.options.breakpoints,
+                    pArr = Object.keys(pObj).sort((a,b) => a - b),
+                    pLen = pArr.length;
+
+                for (let i = 0; i < pLen; i++) {
+                    if (window.innerWidth < +pArr[i]) { 
+                        this.slideWidth = `${100 / +pObj[pArr[i]]}%`;
+                        this.options.slidesToShow = +pObj[pArr[i]];
+                        this.slideOnPage = this.slideCount - +pObj[pArr[i]];
+                        break;
+                    }
+                }
+
+                // check active slide after resizing
+                if (this.activeSlidePage > this.slideOnPage) this.activeSlidePage = this.slideOnPage;
+            },
+
+            setSLideStep(el) {
+                setTimeout(() => {
+                    this.wrapperWidth = el.scrollWidth; 
+                    this.stepWidth = Math.ceil(el.clientWidth / this.options.slidesToShow);
+                    this.transformDuration = '0s';
+                    this.setSlidePage(this.activeSlidePage);
+                }, 50);
+            },
+
+            arrowNext() {
+                this.activeSlidePage + 1 <= this.slideOnPage
+                    ? this.setSlidePage(this.activeSlidePage + 1)
+                    : this.setSlidePage(1);
+            },
+
+            arrowPrev() {
+                this.activeSlidePage - 1 >= 1
+                    ? this.setSlidePage(this.activeSlidePage - 1)
+                    : this.setSlidePage(this.slideOnPage);
+            },
+
+            mouseEvent(event) {
+                if (event.type == 'mousedown' || event.type == 'touchstart') {
+                    this.axisShiftX = event.pageX || event.changedTouches[0].pageX;
+                } 
+
+                if (event.type == 'mouseup' || event.type == 'touchend') {
+                    let endTouch = event.pageX || event.changedTouches[0].pageX;
+
+                    if (endTouch < this.axisShiftX) this.arrowNext();
+                    if (endTouch > this.axisShiftX) this.arrowPrev();
+                }
+            }
+        }
+    }
+</script>

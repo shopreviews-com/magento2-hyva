@@ -1,0 +1,350 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+ use Magento\Framework\View\Element\Template;
+ use Shopreviews\Connect\ViewModel\Reviews;
+ use Magento\Framework\Escaper;
+ use Hyva\Theme\ViewModel\HeroiconsSolid;
+ use Hyva\Theme\ViewModel\HeroiconsOutline;
+ use Hyva\Theme\Model\ViewModelRegistry;
+
+ /** @var Template $block */
+ /** @var Reviews $viewModel */
+ /** @var Escaper $escaper */
+ /** @var ViewModelRegistry $viewModels */
+ /** @var HeroiconsSolid $heroicons */
+ /** @var HeroiconsOutline $heroiconsOutline */
+ 
+$viewModel = $block->getViewModel();
+$heroicons = $viewModels->require(HeroiconsSolid::class);
+$heroiconsOutline = $viewModels->require(HeroiconsOutline::class);
+$summary = $viewModel->getReviewsSummary();
+?>
+
+<div x-data="ShopreviewsOverview" class="grid gap-11 items-start xl:gap-20 xl:grid-cols-[385px_1fr]">
+    <template x-if="isModuleEnable">
+        <section data-element="review-totals" class="xl:sticky xl:top-5">
+            <div class="inline-flex items-center gap-3 mb-8">
+                <b class="relative -top-px mr-2 text-3xl text-[#1e204f]" 
+                   x-text="summary.averageRating"></b>
+
+                <?= $block->getLayout()
+                    ->createBlock(Shopreviews\Connect\Block\Widget\Helper\Stars::class)
+                    ->setTemplate('Shopreviews_HyvaConnect::widget/helper/stars.phtml')
+                    ->setData('svgSize', '32')
+                    ->setData('percent', ($summary['averageRating'] ?? 0) * 20)
+                    ->toHtml();
+                ?>
+
+                <span class="relative top-0.5 ml-2 text-[#535353] text-sm" 
+                      x-text="summary.totalReviews"></span>
+            </div>
+
+            <div class="text-[#535353] text-sm">
+                <table class="w-full border-collapse border-spacing-0 max-w-full">
+                    <template x-for="rating in Object.values(summary.ratingsCount).reverse()">
+                        <tr>
+                            <td class="whitespace-nowrap pr-6 pb-1" x-text="rating.label"></td>
+                            <td class="w-full align-middle pb-1">
+                                <div class="relative h-3.5 bg-[#ebe6e7] rounded-lg overflow-hidden">
+                                    <div class="absolute top-0 bottom-0 left-0 bg-[#ffad0f] rounded-lg" 
+                                         :style="`width: ${rating.percentage}%`"></div>
+                                </div>
+                            </td>
+                            <td class="text-right pl-6 pb-1" x-text="rating.count"></td>
+                        </tr>
+                    </template>
+                </table>
+            </div>
+
+            <div class="grid gap-5 mt-10">
+                <template x-for="platform in summary.platformList">
+                    <div class="relative grid gap-2.5 p-4 border border-[#e5e7eb] bg-[#f9f9f9] rounded-lg text-[15px]">
+                        <div>
+                            <img class="h-11" :src="platform.logo" alt="" />
+                            <b class="absolute top-6 right-6 text-[#1e204f] text-2xl" 
+                               x-text="platform.rating"></b>
+                        </div>
+                        <div>
+                            <b class="font-semibold" x-text="platform.count"></b>
+                            <span><?= $escaper->escapeHtml('reviews placed on'); ?></span>
+                            <span x-text="platform.platformName"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+    </template>
+
+    <template x-if="isModuleEnable">
+        <section data-element="review-content">
+            <div class="relative flex justify-between gap-7 mb-8" data-element="review-filter">
+                <template x-if="filters.source.enabled">
+                    <div class="grid gap-6 items-start text-sm md:flex md:pr-32">
+                        <b class="mt-2.5 font-semibold whitespace-nowrap">
+                            <?= $escaper->escapeHtml('Filter by source'); ?>
+                        </b>
+                        <div class="flex flex-wrap gap-4">
+                            <template x-for="source in filters.source.data">
+                                <span class="inline-flex gap-1.5 items-center px-5 py-2 border border-[#e5e7eb]
+                                            rounded-3xl cursor-pointer transition-colors duration-300
+                                            hover:border-[#1e204f] hover:bg-[#1e204f] hover:text-white"
+                                      :class='{ "bg-[#1e204f] text-white": filter.source.includes(source.value) }'
+                                      x-on:click="setFilterSource(source.value)"
+                                >
+                                    <img class="mr-1.5" :src="source.icon" width="16" height="16" alt="" />
+                                    <span x-text="source.label"></span>
+                                    <span x-text="`(${source.count})`"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="filters.sorting.enabled">
+                    <div class="absolute right-0 ml-auto">
+                        <div>
+                            <div class="flex justify-between items-center gap-2.5 mt-2.5 font-medium 
+                                        whitespace-nowrap cursor-pointer text-sm" 
+                                 x-on:click="setSorting(filter.sorting.next)">
+                                <span><?= $escaper->escapeHtml('Sort by date'); ?></span>
+                                <span class="transition-transform duration-300"
+                                      :class='{ "rotate-180": filter.sorting.current === "date_asc" }'>
+                                    <?= $heroicons->chevronDownHtml('', 18, 18); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div data-element="reviews-list">
+                <template x-for="review in reviews">
+                    <div class="relative py-8 border-t border-[#e5e7eb]">
+                        <h3 class="text-[#1e204f] font-medium mb-0.5 text-lg" 
+                            x-text="review.name"></h3>
+
+                        <div class="relative inline-flex mb-5 -ml-1" :title="`${review.total*20}%`">
+                            <div class="absolute top-0 right-0 bottom-0 left-0 overflow-hidden"
+                                :style="`width: ${review.total*20}%`">
+
+                                <div class="inline-flex text-[#ffad0f]">
+                                    <?= $heroicons->starHtml('', 24, 24); ?>
+                                    <?= $heroicons->starHtml('', 24, 24); ?>
+                                    <?= $heroicons->starHtml('', 24, 24); ?>
+                                    <?= $heroicons->starHtml('', 24, 24); ?>
+                                    <?= $heroicons->starHtml('', 24, 24); ?>
+                                </div>
+                            </div>
+
+                            <div class="inline-flex text-gray-300">
+                                <?= $heroicons->starHtml('', 24, 24); ?>
+                                <?= $heroicons->starHtml('', 24, 24); ?>
+                                <?= $heroicons->starHtml('', 24, 24); ?>
+                                <?= $heroicons->starHtml('', 24, 24); ?>
+                                <?= $heroicons->starHtml('', 24, 24); ?>
+                            </div>
+                        </div>
+
+                        <div class="text-[#535353] text-sm" x-text="review.description"></div>
+
+                        <div class="text-right text-sm mt-8 lg:absolute lg:top-0 lg:right-0">
+                            <span class="inline-flex items-center justify-center w-6 h-6 mr-1.5 
+                                         border border-[#e5e7eb] rounded-full relative top-0.5">
+                                <img :src="review.platform_logo" alt="" width="16" height="16" />
+                            </span>
+                            <span class="label">
+                                <span><?= $escaper->escapeHtml('Posted on') ?></span>
+                                <b class="text-[#1e204f] font-semibold" x-text="review.platform_name"></b>
+                                <span><?= $escaper->escapeHtml('on ') ?></span>
+                                <b class="text-[#1e204f] font-semibold" x-text="review.created"></b>
+                            </span>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!Object.values(reviews).length">
+                    <div class="message warning">
+                        <?= $escaper->escapeHtml('No reviews data available') ?>
+                    </div>
+                </template>
+            </div>
+
+            <template x-if="Object.values(reviews).length">
+                <div class="pt-8 border-t border-[#e5e7eb]" data-element="review-pagination">
+                    <template x-if="pagination.isAvailable">
+                        <ul class="flex gap-2">
+                            <li data-element="item-previous">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e204f] 
+                                            text-white cursor-pointer"  
+                                      title="<?= $escaper->escapeHtmlAttr('Previous'); ?>"
+                                      x-on:click="updateReviews(pagination.prevValue)"
+                                >
+                                    <?= $heroiconsOutline->chevronLeftHtml('', 22, 22); ?>
+                                </span>
+                            </li>
+
+                            <template x-for="page in pages">
+                                <template x-if="page.value">
+                                    <li class="item">
+                                        <span class="flex items-center justify-center rounded-lg border border-[#1e204f] 
+                                                     w-8 h-8 text-sm cursor-pointer transition-colors duration-300
+                                                     hover:bg-[#1e204f] hover:text-white"
+                                              :class='{ "pointer-events-none bg-[#1e204f] text-white": page.current }'
+                                              x-text="page.label" 
+                                              x-on:click="updateReviews(page.value)">
+                                        </span>
+                                    </li>
+                                </template>
+
+                                <template x-if="!page.value">
+                                    <li class="spacer">
+                                        <span class="flex items-center justify-center rounded-lg border border-[#1e204f] 
+                                                     w-8 h-8 text-sm cursor-pointer transition-colors duration-300
+                                                     hover:bg-[#1e204f] hover:text-white"
+                                              x-text="page.label">
+                                        </span>
+                                    </li>
+                                </template>
+                            </template>
+
+                            <li data-element="item-next">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e204f] 
+                                            text-white cursor-pointer"  
+                                      title="<?= $escaper->escapeHtmlAttr('Next'); ?>"
+                                      x-on:click="updateReviews(pagination.nextValue)"
+                                >
+                                    <?= $heroiconsOutline->chevronRightHtml('', 22, 22); ?>
+                                </span>
+                            </li>
+                        </ul>
+                    </template>
+                </div>
+            </template>
+        </section>
+    </template>
+
+    <template x-if="!isModuleEnable">
+        <div class="message warning">
+            <?= $escaper->escapeHtml(__('Module Shopreviews_Connect is not enabled')); ?>
+        </div>
+    </template>
+
+    <?= $block->getChildHtml('shopreviews.reviews.loading'); ?>
+</div>
+
+<script>
+    'use strict';
+
+    function ShopreviewsOverview() {
+        return {
+            isModuleEnable: <?= /* @noEscape */ json_encode((bool)$viewModel->isEnabled()); ?>,
+            filters: <?= /* @noEscape */ $viewModel->serializeData($viewModel->getEnabledFilters()); ?>,
+            reviews: <?= /* @noEscape */ $viewModel->serializeData($viewModel->getReviews()); ?>,
+            pagination: <?= /* @noEscape */ $viewModel->serializeData($viewModel->getPaginationData()); ?>,
+            summary: <?= /* @noEscape */ $viewModel->serializeData($viewModel->getReviewsSummary()); ?>,
+            isLoading: false,
+            pages: {},
+            filter: {
+                source: [],
+                sorting: {
+                    current: '',
+                    next: '',
+                }
+            },
+
+            init() {
+                this.initDefaultFilterState();
+                this.setPagination();
+            },
+
+            initDefaultFilterState() {
+                const sources = this.filters.source.data;
+                const sorting = this.filters.sorting.data;
+                
+                this.filter.source = [...sources.filter(item => item.selected === true).map(item => item.value)];
+                this.filter.sorting.current = sorting.find(item => item.selected)?.value || null;
+                this.filter.sorting.next = sorting.find(item => !item.selected)?.value || null;
+            },
+
+            setSorting(value) {
+                this.filter.sorting.next = this.filter.sorting.current;
+                this.filter.sorting.current = value;
+                this.updateReviews(1);
+            },
+
+            setFilterSource(value) {
+                const index = this.filter.source.indexOf(value);
+
+                index === -1
+                    ? this.filter.source.push(value)
+                    : this.filter.source.splice(index, 1);
+
+                this.updateReviews(1);
+            },
+
+            setPagination() {
+                const current = this.pagination.currentPage; // Current page number (assumed to be 1-based)
+                const length = this.pagination.pages.length; // Total number of pages
+                const totalPagesToShow = 10; // Always show 10 pages
+                const halfRange = Math.floor(totalPagesToShow / 2); // 5 pages before and after the current page
+
+                let start = current - halfRange - 1; // Subtract 1 if currentPage is 1-based (convert to 0-based index)
+                let end = current + halfRange - 1;
+
+                if (start < 0) {
+                    end += Math.abs(start);
+                    start = 0;
+                }
+
+                if (end > length) {
+                    start -= (end - length);
+                    end = length;
+                }
+
+                start = Math.max(0, start);
+                this.pages = this.pagination.pages.slice(start, end);
+            },
+
+            updateReviews(newPage) {
+                const page = newPage || this.pagination['currentPage'];
+                this.isLoading = true;
+
+                fetch(this.filters.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    body: new URLSearchParams({
+                        accounts: '',
+                        sources: this.filter.source.join(','),
+                        sorting: this.filter.sorting.current,
+                        ratings: '',
+                        page: +page
+                    }).toString()
+                })
+                .then(response => response.json())
+                .then(json => {
+                    if (json.reviews) {
+                        this.reviews = json.reviews.data;
+                        this.filters = json.reviews.filters;
+                        this.pagination = json.reviews.pagination;
+                        this.setPagination();
+                    } else {
+                        dispatchMessages([{
+                            type: "error",
+                            text: "<?= __('Something went wrong during the data update'); ?>"
+                        }], 5000);
+                    }
+                })
+                .catch(() => {})
+                .finally(() => this.isLoading = false);
+            },
+        }
+    }
+</script>
