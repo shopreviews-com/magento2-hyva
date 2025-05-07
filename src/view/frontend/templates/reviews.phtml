@@ -70,7 +70,7 @@ $summary = $viewModel->getReviewsSummary();
                         </div>
                         <div>
                             <b class="font-semibold" x-text="platform.count"></b>
-                            <span><?= $escaper->escapeHtml('reviews placed on'); ?></span>
+                            <span><?= $escaper->escapeHtml(__('reviews placed on')); ?></span>
                             <span x-text="platform.platformName"></span>
                         </div>
                     </div>
@@ -85,7 +85,7 @@ $summary = $viewModel->getReviewsSummary();
                 <template x-if="filters.source.enabled">
                     <div class="grid gap-6 items-start text-sm md:flex md:pr-32">
                         <b class="mt-2.5 font-semibold whitespace-nowrap">
-                            <?= $escaper->escapeHtml('Filter by source'); ?>
+                            <?= $escaper->escapeHtml(__('Filter by source')); ?>
                         </b>
                         <div class="flex flex-wrap gap-4">
                             <template x-for="source in filters.source.data">
@@ -110,7 +110,7 @@ $summary = $viewModel->getReviewsSummary();
                             <div class="flex justify-between items-center gap-2.5 mt-2.5 font-medium 
                                         whitespace-nowrap cursor-pointer text-sm" 
                                  x-on:click="setSorting(filter.sorting.next)">
-                                <span><?= $escaper->escapeHtml('Sort by date'); ?></span>
+                                <span><?= $escaper->escapeHtml(__('Sort by date')); ?></span>
                                 <span class="transition-transform duration-300"
                                       :class='{ "rotate-180": filter.sorting.current === "date_asc" }'>
                                     <?= $heroicons->chevronDownHtml('', 18, 18); ?>
@@ -157,9 +157,9 @@ $summary = $viewModel->getReviewsSummary();
                                 <img :src="review.platform_logo" alt="" width="16" height="16" />
                             </span>
                             <span class="label">
-                                <span><?= $escaper->escapeHtml('Posted on') ?></span>
+                                <span><?= $escaper->escapeHtml(__('Posted on')) ?></span>
                                 <b class="text-[#1e204f] font-semibold" x-text="review.platform_name"></b>
-                                <span><?= $escaper->escapeHtml('on ') ?></span>
+                                <span><?= $escaper->escapeHtml(__('on ')) ?></span>
                                 <b class="text-[#1e204f] font-semibold" x-text="review.created"></b>
                             </span>
                         </div>
@@ -180,7 +180,7 @@ $summary = $viewModel->getReviewsSummary();
                             <li data-element="item-previous">
                                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e204f] 
                                             text-white cursor-pointer"  
-                                      title="<?= $escaper->escapeHtmlAttr('Previous'); ?>"
+                                      title="<?= $escaper->escapeHtmlAttr(__('Previous')); ?>"
                                       x-on:click="updateReviews(pagination.prevValue)"
                                 >
                                     <?= $heroiconsOutline->chevronLeftHtml('', 22, 22); ?>
@@ -214,7 +214,7 @@ $summary = $viewModel->getReviewsSummary();
                             <li data-element="item-next">
                                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e204f] 
                                             text-white cursor-pointer"  
-                                      title="<?= $escaper->escapeHtmlAttr('Next'); ?>"
+                                      title="<?= $escaper->escapeHtmlAttr(__('Next')); ?>"
                                       x-on:click="updateReviews(pagination.nextValue)"
                                 >
                                     <?= $heroiconsOutline->chevronRightHtml('', 22, 22); ?>

@@ -20,7 +20,6 @@ $uniqId= $block->getUniqueId();
 $website = $block->getWebsite();
 $fm = $block->formatter();
 
-$isItPaid = false; // TODO: add logic for paid plan
 $shopreviewsLogo = $block->getViewFileUrl('Shopreviews_Connect::images/shopreviews-logo.png');
 
 if(!$website) { return; }
@@ -119,11 +118,9 @@ $sourcesCount = $website->getSourceCount();
             }"
         >
             <div class="relative text-center py-8 px-5 border-b border-[#e5e7eb]">
-                <?php if(!$isItPaid): ?>
-                    <div data-element="shopreviews-logo" class="mb-6">
-                        <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="absolute top-3 left-4" alt="Shopreview logo" width="158" height="29"/>
-                    </div>
-                <?php endif; ?>
+                <div data-element="shopreviews-logo" class="mb-6">
+                    <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="absolute top-3 left-4" alt="Shopreview logo" width="158" height="29"/>
+                </div>
 
                 <h2 class="text-3xl font-semibold mb-2 [&_span]:text-xl [&_span]:font-light">
                     <?= $escaper->escapeHtml(__(
