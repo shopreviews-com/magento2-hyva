@@ -23,7 +23,6 @@ $uniqId = $block->getUniqueId();
 $website = $block->getWebsite();
 $fm = $block->formatter();
 
-$isItPaid = false; // TODO: add logic for paid plan
 $shopreviewsLogo = $block->getViewFileUrl('Shopreviews_Connect::images/shopreviews-logo.png');
 
 if(!$website) { return; }
@@ -71,11 +70,9 @@ $textLength = $block->getTextLength();
                 <?php endif; ?>
             </div>
 
-            <?php if(!$isItPaid): ?>
-                <div data-element="shopreviews-logo" class="mt-2.5">
-                    <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="mx-auto" alt="Shopreview logo" width="158" height="29"/>
-                </div>
-            <?php endif; ?>
+            <div data-element="shopreviews-logo" class="mt-2.5">
+                <img src="<?= $escaper->escapeUrl($shopreviewsLogo) ?>" class="mx-auto" alt="Shopreview logo" width="158" height="29"/>
+            </div>
         </div>
     <?php endif; ?>
 
